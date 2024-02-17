@@ -13,7 +13,7 @@ public class Rope : MonoBehaviour
     [Range(2,100)]public int linePoints = 10;
     public float stiffness = 1f; // value highly dependent on use case
     public float damping = 0.1f; // 0 is no damping, 1 is a lot, I think
-    public float ropeLenght;
+    public float ropeLenght = 15;
 
 
     float currentValue;
@@ -32,15 +32,6 @@ public class Rope : MonoBehaviour
     private void Update()
     {
         SetSplinePoint();
-
-        if (Input.GetKeyDown(KeyCode.UpArrow))
-        {
-            targetValue += 5;
-        }
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
-        {
-            targetValue -= 5;
-        }
     }
 
     void SetSplinePoint()
