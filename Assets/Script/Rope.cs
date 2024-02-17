@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections;
 
 [RequireComponent(typeof(LineRenderer))]
 public class Rope : MonoBehaviour
@@ -10,10 +9,10 @@ public class Rope : MonoBehaviour
     [Tooltip("This will move at the center, if you want to attach stuff")]
     public Transform midPoint;
 
-    [Range(2,100)]public int linePoints = 10;
+    [Range(2, 100)] public int linePoints = 10;
     public float stiffness = 1f; // value highly dependent on use case
     public float damping = 0.1f; // 0 is no damping, 1 is a lot, I think
-    public float ropeLenght = 15;
+    public float ropeLength = 15;
 
 
     float currentValue;
@@ -24,11 +23,13 @@ public class Rope : MonoBehaviour
 
 
     LineRenderer lineRenderer;
+
     private void Start()
     {
         lineRenderer = GetComponent<LineRenderer>();
-        currentValue = getMidPoint().y;
+        currentValue = GetMidPoint().y;
     }
+
     private void Update()
     {
         SetSplinePoint();
@@ -36,34 +37,35 @@ public class Rope : MonoBehaviour
 
     void SetSplinePoint()
     {
-        if (lineRenderer.positionCount != linePoints+1)
-            lineRenderer.positionCount = linePoints+1;
+        if (lineRenderer.positionCount != linePoints + 1)
+            lineRenderer.positionCount = linePoints + 1;
 
-        Vector3 mid = getMidPoint();
+        Vector3 mid = GetMidPoint();
         targetValue = mid.y;
         mid.y = currentValue;
 
         if (midPoint != null)
-            midPoint.position = getBezierPoint(startPoint.position, mid, endPoint.position, 0.5f);
+            midPoint.position = GetBezierPoint(startPoint.position, mid, endPoint.position, 0.5f);
 
         for (int i = 0; i < linePoints; i++)
         {
-            Vector3 p = getBezierPoint(startPoint.position, mid, endPoint.position, i / (float)linePoints);
+            Vector3 p = GetBezierPoint(startPoint.position, mid, endPoint.position, i / (float)linePoints);
             lineRenderer.SetPosition(i, p);
         }
 
         lineRenderer.SetPosition(linePoints, endPoint.position);
     }
-    
-    Vector3 getMidPoint()
+
+    Vector3 GetMidPoint()
     {
-        Vector3 midpos = Vector3.Lerp(startPoint.position, endPoint.position, .5f);
-        float yFactor = ropeLenght - Mathf.Min(Vector3.Distance(startPoint.position, endPoint.position),ropeLenght);
+        var (startPointPosition, endPointPosition) = (startPoint.position, endPoint.position);
+        Vector3 midpos = Vector3.Lerp(startPointPosition, endPointPosition, .5f);
+        float yFactor = ropeLength - Mathf.Min(Vector3.Distance(startPointPosition, endPointPosition), ropeLength);
         midpos.y -= yFactor;
         return midpos;
     }
 
-    Vector3 getBezierPoint(Vector3 p0, Vector3 p1, Vector3 p2, float t)
+    Vector3 GetBezierPoint(Vector3 p0, Vector3 p1, Vector3 p2, float t)
     {
         Vector3 a = Vector3.Lerp(p0, p1, t);
 
@@ -73,13 +75,13 @@ public class Rope : MonoBehaviour
 
         return point;
     }
-    
+
 
     void FixedUpdate()
     {
         SimulatePhysics();
     }
-    
+
 
     void SimulatePhysics()
     {
@@ -87,7 +89,7 @@ public class Rope : MonoBehaviour
         float acceleration = (targetValue - currentValue) * stiffness * Time.fixedDeltaTime;
         currentVelocity = currentVelocity * dampingFactor + acceleration;
         currentValue += currentVelocity * Time.fixedDeltaTime;
-        
+
         if (Mathf.Abs(currentValue - targetValue) < valueThreshold && Mathf.Abs(currentVelocity) < velocityThreshold)
         {
             currentValue = targetValue;
@@ -99,7 +101,7 @@ public class Rope : MonoBehaviour
     {
         if (endPoint == null || startPoint == null)
             return;
-        Vector3 midPos = getMidPoint();
+        Vector3 midPos = GetMidPoint();
 
         Gizmos.color = Color.red;
         Gizmos.DrawSphere(midPos, 0.2f);
