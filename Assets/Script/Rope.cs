@@ -4,16 +4,16 @@ using UnityEngine;
 public class Rope : MonoBehaviour
 {
     [Header("Rope Transforms")]
-    [Tooltip("The rope would start at this point")]
+    [Tooltip("The rope will start at this point")]
     public Transform startPoint;
     [Tooltip("The rope will end at this point")]
     public Transform endPoint;
-    [Tooltip("This will move at the center, if you want to attach stuff, like a necklace, for example")]
+    [Tooltip("This will move at the center hanging from the rope, like a necklace, for example")]
     public Transform midPoint;
     [Header("Rope Settings")]
-    [Tooltip("How many points should the rope have, 2 would be a triangle with no moving parts, 100 would be a very flexible rope with many parts")]
+    [Tooltip("How many points should the rope have, 2 would be a triangle with straight lines, 100 would be a very flexible rope with many parts")]
     [Range(2, 100)] public int linePoints = 10;
-    [Tooltip("value highly dependent on use case, a metail cable would have high stifness, a rubber rope would have a low one")]
+    [Tooltip("Value highly dependent on use case, a metal cable would have high stifness, a rubber rope would have a low one")]
     public float stiffness = 1f;
     [Tooltip("0 is no damping, 1 is a lot")]
     public float damping = 0.1f;
