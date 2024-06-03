@@ -5,21 +5,32 @@ public class Rope : MonoBehaviour {
     [Header("Rope Transforms")]
     [Tooltip("The rope will start at this point")]
     public Transform startPoint;
-    [Tooltip("The rope will end at this point")]
-    public Transform endPoint;
     [Tooltip("This will move at the center hanging from the rope, like a necklace, for example")]
     public Transform midPoint;
+    [Tooltip("The rope will end at this point")]
+    public Transform endPoint;
+
     [Header("Rope Settings")]
     [Tooltip("How many points should the rope have, 2 would be a triangle with straight lines, 100 would be a very flexible rope with many parts")]
     [Range(2, 100)] public int linePoints = 10;
     [Tooltip("Value highly dependent on use case, a metal cable would have high stiffness, a rubber rope would have a low one")]
-    public float stiffness = 1f;
+    public float stiffness = 350f;
     [Tooltip("0 is no damping, 50 is a lot")]
     public float damping = 15f;
     [Tooltip("How long is the rope, it will hang more or less from starting point to end point depending on this value")]
     public float ropeLength = 15;
     [Tooltip("The Rope width set at start (changing this value during run time will produce no effect)")]
-    public float ropeWidth = 1;
+    public float ropeWidth = 0.1f;
+
+    [Header("Rational Bezier Weight Control")]
+    [Tooltip("Adjust the middle control point weight for the Rational Bezier curve")]
+    [Range(1, 15)] public float midPointWeight = 1f;
+    float startPointWeight = 1f; //these need to stay at 1, could be removed but makes calling the rational bezier function easier to read and understand
+    float endPointWeight = 1f;
+
+    [Header("Midpoint Position")]
+    [Tooltip("Position of the midpoint along the line between start and end points")]
+    [Range(0.25f, 0.75f)] public float midPointPosition = 0.5f; //undesired line behaviour and midpoint position outside this safe range, there's probably a better way to do this
 
     Vector3 currentValue;
     Vector3 currentVelocity;
@@ -33,7 +44,7 @@ public class Rope : MonoBehaviour {
         lineRenderer = GetComponent<LineRenderer>();
         lineRenderer.startWidth = ropeWidth;
         lineRenderer.endWidth = ropeWidth;
-        currentValue = GetMidPoint();
+        currentValue = GetInitialMidPoint();
     }
 
     private void Update () {
@@ -44,33 +55,45 @@ public class Rope : MonoBehaviour {
         if (lineRenderer.positionCount != linePoints + 1)
             lineRenderer.positionCount = linePoints + 1;
 
-        Vector3 mid = GetMidPoint();
+        Vector3 mid = GetInitialMidPoint();
         targetValue = mid;
         mid = currentValue;
 
         if (midPoint != null)
-            midPoint.position = GetBezierPoint(startPoint.position, mid, endPoint.position, 0.5f);
+            midPoint.position = GetRationalBezierPoint(startPoint.position, mid, endPoint.position, midPointPosition, startPointWeight, midPointWeight, endPointWeight);
+
 
         for (int i = 0; i < linePoints; i++) {
-            Vector3 p = GetBezierPoint(startPoint.position, mid, endPoint.position, i / (float)linePoints);
+            Vector3 p = GetRationalBezierPoint(startPoint.position, mid, endPoint.position, i / (float)linePoints, startPointWeight, midPointWeight, endPointWeight);
             lineRenderer.SetPosition(i, p);
         }
 
         lineRenderer.SetPosition(linePoints, endPoint.position);
     }
 
-    Vector3 GetMidPoint () {
+    float CalculateYFactorAdjustment (float weight) {
+        float k = 0.360f;
+        float w = 1 + k * Mathf.Log(weight);
+
+        return 1f * w;
+    }
+
+    Vector3 GetInitialMidPoint () {
         var (startPointPosition, endPointPosition) = (startPoint.position, endPoint.position);
-        Vector3 midpos = Vector3.Lerp(startPointPosition, endPointPosition, .5f);
-        float yFactor = ropeLength - Mathf.Min(Vector3.Distance(startPointPosition, endPointPosition), ropeLength);
+        Vector3 midpos = Vector3.Lerp(startPointPosition, endPointPosition, midPointPosition);
+        float yFactor = (ropeLength - Mathf.Min(Vector3.Distance(startPointPosition, endPointPosition), ropeLength)) / CalculateYFactorAdjustment(midPointWeight);
         midpos.y -= yFactor;
         return midpos;
     }
 
-    Vector3 GetBezierPoint (Vector3 p0, Vector3 p1, Vector3 p2, float t) {
-        Vector3 a = Vector3.Lerp(p0, p1, t);
-        Vector3 b = Vector3.Lerp(p1, p2, t);
-        Vector3 point = Vector3.Lerp(a, b, t);
+    Vector3 GetRationalBezierPoint (Vector3 p0, Vector3 p1, Vector3 p2, float t, float w0, float w1, float w2) {
+        Vector3 wp0 = w0 * p0;
+        Vector3 wp1 = w1 * p1;
+        Vector3 wp2 = w2 * p2;
+
+        float denominator = w0 * Mathf.Pow(1 - t, 2) + 2 * w1 * (1 - t) * t + w2 * Mathf.Pow(t, 2);
+        Vector3 point = (wp0 * Mathf.Pow(1 - t, 2) + wp1 * 2 * (1 - t) * t + wp2 * Mathf.Pow(t, 2)) / denominator;
+
         return point;
     }
 
@@ -93,7 +116,7 @@ public class Rope : MonoBehaviour {
     private void OnDrawGizmos () {
         if (endPoint == null || startPoint == null)
             return;
-        Vector3 midPos = GetMidPoint();
+        Vector3 midPos = GetInitialMidPoint();
 
         Gizmos.color = Color.red;
         Gizmos.DrawSphere(midPos, 0.2f);
