@@ -44,7 +44,7 @@ public class Rope : MonoBehaviour {
         lineRenderer = GetComponent<LineRenderer>();
         lineRenderer.startWidth = ropeWidth;
         lineRenderer.endWidth = ropeWidth;
-        currentValue = GetInitialMidPoint();
+        currentValue = GetMidPoint();
     }
 
     private void Update () {
@@ -55,7 +55,7 @@ public class Rope : MonoBehaviour {
         if (lineRenderer.positionCount != linePoints + 1)
             lineRenderer.positionCount = linePoints + 1;
 
-        Vector3 mid = GetInitialMidPoint();
+        Vector3 mid = GetMidPoint();
         targetValue = mid;
         mid = currentValue;
 
@@ -72,13 +72,16 @@ public class Rope : MonoBehaviour {
     }
 
     float CalculateYFactorAdjustment (float weight) {
-        float k = 0.360f;
-        float w = 1 + k * Mathf.Log(weight);
+        
+        float k = 0.360f; //after testing this seemed to be a good value for most cases, more accurate k is available.
+        //float k = Mathf.Lerp(0.493f, 0.323f, (Mathf.InverseLerp(1, 15, weight))); //K calculation that should be more accurate, interpolates between precalculated values based on weight.
 
-        return 1f * w;
+        float w = 1f + k * Mathf.Log(weight);
+
+        return w;
     }
 
-    Vector3 GetInitialMidPoint () {
+    Vector3 GetMidPoint () {
         var (startPointPosition, endPointPosition) = (startPoint.position, endPoint.position);
         Vector3 midpos = Vector3.Lerp(startPointPosition, endPointPosition, midPointPosition);
         float yFactor = (ropeLength - Mathf.Min(Vector3.Distance(startPointPosition, endPointPosition), ropeLength)) / CalculateYFactorAdjustment(midPointWeight);
@@ -87,11 +90,14 @@ public class Rope : MonoBehaviour {
     }
 
     Vector3 GetRationalBezierPoint (Vector3 p0, Vector3 p1, Vector3 p2, float t, float w0, float w1, float w2) {
+        //scale each point by it's weight (can probably remove w0 and w2 if the midpoint is the only adjustable weight)
         Vector3 wp0 = w0 * p0;
         Vector3 wp1 = w1 * p1;
         Vector3 wp2 = w2 * p2;
 
+        //calculate the denominator of the rational bezier curve
         float denominator = w0 * Mathf.Pow(1 - t, 2) + 2 * w1 * (1 - t) * t + w2 * Mathf.Pow(t, 2);
+        //calculate the numerator and devide by the demoninator to get the point on the curve
         Vector3 point = (wp0 * Mathf.Pow(1 - t, 2) + wp1 * 2 * (1 - t) * t + wp2 * Mathf.Pow(t, 2)) / denominator;
 
         return point;
@@ -116,7 +122,7 @@ public class Rope : MonoBehaviour {
     private void OnDrawGizmos () {
         if (endPoint == null || startPoint == null)
             return;
-        Vector3 midPos = GetInitialMidPoint();
+        Vector3 midPos = GetMidPoint();
 
         Gizmos.color = Color.red;
         Gizmos.DrawSphere(midPos, 0.2f);
