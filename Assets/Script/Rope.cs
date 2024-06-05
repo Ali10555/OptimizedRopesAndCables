@@ -32,6 +32,22 @@ public class Rope : MonoBehaviour {
     [Tooltip("Position of the midpoint along the line between start and end points")]
     [Range(0.25f, 0.75f)] public float midPointPosition = 0.5f; //undesired line behaviour and midpoint position outside this safe range, there's probably a better way to do this
 
+    [Header("Wind Settings")]
+    [Tooltip("Simulates wind in a direction")]
+    public bool windEffect = false;
+    [Tooltip("Set wind direction perpendicular to the rope based on the start and end points")]
+    public bool perpendicularWind = false;
+    [Tooltip("Flip the direction of the wind")]
+    public bool flipWindDirection = false;
+    [Tooltip("Direction of the wind force in degrees")]
+    [Range(-360f, 360f)] public float windDirectionDegrees;
+    Vector3 windDirection;
+    [Tooltip("Magnitude of the wind force")]
+    [Range(0f, 500f)]public float windForce;
+    float appliedWindForce;
+    float windSeed; //gives a little variety on the movement when there are multiple ropes
+
+
     Vector3 currentValue;
     Vector3 currentVelocity;
     Vector3 targetValue;
@@ -45,10 +61,12 @@ public class Rope : MonoBehaviour {
         lineRenderer.startWidth = ropeWidth;
         lineRenderer.endWidth = ropeWidth;
         currentValue = GetMidPoint();
+        windSeed = Random.Range(-0.3f, 0.3f);
     }
 
     private void Update () {
         SetSplinePoint();
+        if (windEffect) GenerateWind(); else appliedWindForce = 0f;
     }
 
     void SetSplinePoint () {
@@ -62,7 +80,6 @@ public class Rope : MonoBehaviour {
         if (midPoint != null)
             midPoint.position = GetRationalBezierPoint(startPoint.position, mid, endPoint.position, midPointPosition, startPointWeight, midPointWeight, endPointWeight);
 
-
         for (int i = 0; i < linePoints; i++) {
             Vector3 p = GetRationalBezierPoint(startPoint.position, mid, endPoint.position, i / (float)linePoints, startPointWeight, midPointWeight, endPointWeight);
             lineRenderer.SetPosition(i, p);
@@ -72,10 +89,8 @@ public class Rope : MonoBehaviour {
     }
 
     float CalculateYFactorAdjustment (float weight) {
-        
-        float k = 0.360f; //after testing this seemed to be a good value for most cases, more accurate k is available.
-        //float k = Mathf.Lerp(0.493f, 0.323f, (Mathf.InverseLerp(1, 15, weight))); //K calculation that should be more accurate, interpolates between precalculated values based on weight.
-
+        //float k = 0.360f; //after testing this seemed to be a good value for most cases, more accurate k is available.
+        float k = Mathf.Lerp(0.493f, 0.323f, (Mathf.InverseLerp(1, 15, weight))); //K calculation that is more accurate, interpolates between precalculated values.
         float w = 1f + k * Mathf.Log(weight);
 
         return w;
@@ -103,6 +118,39 @@ public class Rope : MonoBehaviour {
         return point;
     }
 
+    void GenerateWind () {
+
+        if(perpendicularWind) {
+            Vector3 startToEnd = endPoint.position - startPoint.position; //calculate the vector from start to end
+            windDirection = Vector3.Cross(startToEnd, Vector3.up).normalized; //find the perpendicular direction
+
+            //make some noise and calculate the wind direction in degrees
+            float noise = Mathf.PerlinNoise(Time.time + windSeed, 0.0f) * 20f - 10f; //20 degrees of range for the wind direction
+            float perpendicularWindDirection = Vector3.SignedAngle(Vector3.forward, windDirection, Vector3.up);
+            float noisyWindDirection = perpendicularWindDirection + noise; //add the noise to the wind direction
+
+            //convert the noisy wind direction back to a vector
+            float radians = noisyWindDirection * Mathf.Deg2Rad;
+            windDirection = new Vector3(Mathf.Sin(radians), 0, Mathf.Cos(radians)).normalized;
+            
+            windDirectionDegrees = perpendicularWindDirection; //set the wind direction so the user can see a change has happened and what direction the wind is set to
+        } else {
+            //add Perlin noise to the wind direction
+            float noise = Mathf.PerlinNoise(Time.time + windSeed, 0.0f) * 20f - 10f; //20 degrees of range for the wind direction
+            float noisyWindDirection = windDirectionDegrees + noise; //add the noise to the wind direction
+
+            //convert the noisy wind direction back to a vector
+            float radians = noisyWindDirection * Mathf.Deg2Rad;
+            windDirection = new Vector3(Mathf.Sin(radians), 0, Mathf.Cos(radians)).normalized;
+        }
+
+        //apply perlin noise to the wind force with a check for flipped wind direction
+        float windNoise = Mathf.PerlinNoise(Time.time + windSeed, 0.0f) * Mathf.PerlinNoise(0.5f * Time.time, 0.0f);
+        if (flipWindDirection) appliedWindForce = ((windForce * -1) * 5f) * windNoise;
+        else appliedWindForce = (windForce * 5f) * windNoise;
+
+    }
+
     void FixedUpdate () {
         SimulatePhysics();
     }
@@ -110,7 +158,8 @@ public class Rope : MonoBehaviour {
     void SimulatePhysics () {
         float dampingFactor = Mathf.Max(0, 1 - damping * Time.fixedDeltaTime);
         Vector3 acceleration = (targetValue - currentValue) * stiffness * Time.fixedDeltaTime;
-        currentVelocity = currentVelocity * dampingFactor + acceleration;
+        Vector3 windEffect = windDirection.normalized * appliedWindForce * Time.fixedDeltaTime;
+        currentVelocity = currentVelocity * dampingFactor + acceleration + windEffect;
         currentValue += currentVelocity * Time.fixedDeltaTime;
 
         if (Vector3.Distance(currentValue, targetValue) < valueThreshold && currentVelocity.magnitude < velocityThreshold) {
