@@ -55,6 +55,16 @@ namespace GogoGaga.OptimizedRopesAndCables
             currentValue = GetMidPoint();
         }
 
+        private void OnValidate()
+        {
+            if(!lineRenderer)
+                lineRenderer = GetComponent<LineRenderer>();
+            
+            lineRenderer.startWidth = ropeWidth;
+            lineRenderer.endWidth = ropeWidth;
+        }
+
+
         private void Update()
         {
             SetSplinePoint();
@@ -137,6 +147,8 @@ namespace GogoGaga.OptimizedRopesAndCables
                 currentVelocity = Vector3.zero;
             }
         }
+
+        
 
         private void OnDrawGizmos()
         {

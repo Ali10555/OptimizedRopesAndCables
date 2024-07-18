@@ -7,9 +7,7 @@ namespace GogoGaga.OptimizedRopesAndCables
     [RequireComponent(typeof (MeshFilter)), RequireComponent(typeof(MeshRenderer)), RequireComponent(typeof(Rope))]
     public class RopeMesh : MonoBehaviour
     {
-        [Range(0,1)]
-        public float Weight = 0;
-        public int OverallDivision = 3;
+        public int OverallDivision = 6;
         public float ropeWidth = 0.3f;
         public int radialDivision = 8;
         public Material material;
@@ -17,6 +15,7 @@ namespace GogoGaga.OptimizedRopesAndCables
         MeshFilter meshFilter;
         MeshRenderer meshRenderer;
         Mesh ropeMesh;
+        LineRenderer lineRenderer;
 
         private void OnValidate()
         {
@@ -26,6 +25,8 @@ namespace GogoGaga.OptimizedRopesAndCables
                 meshFilter = GetComponent<MeshFilter>();
             if (!meshRenderer)
                 meshRenderer = GetComponent<MeshRenderer>();
+            if(!lineRenderer)
+                lineRenderer = GetComponent<LineRenderer>();
 
             meshRenderer.material = material;
         }
@@ -39,8 +40,15 @@ namespace GogoGaga.OptimizedRopesAndCables
                 meshFilter = GetComponent<MeshFilter>();
             if (!meshRenderer)
                 meshRenderer = GetComponent<MeshRenderer>();
+            if (!lineRenderer)
+                lineRenderer = GetComponent<LineRenderer>();
         }
 
+        private void Start()
+        {
+            if (lineRenderer)
+                lineRenderer.enabled = false;
+        }
 
         public void CreateRopeMesh(Vector3[] points, float radius, int segmentsPerWire)
         {
@@ -51,7 +59,10 @@ namespace GogoGaga.OptimizedRopesAndCables
                 return;
             }
 
-            // Create a list to hold vertices and triangles
+            // Get the position of the GameObject to which this script is attached
+            Vector3 gameObjectPosition = transform.position;
+
+            // Create lists to hold vertices and triangles
             List<Vector3> vertices = new List<Vector3>();
             List<int> triangles = new List<int>();
 
@@ -71,7 +82,7 @@ namespace GogoGaga.OptimizedRopesAndCables
                 {
                     float angle = j * Mathf.PI * 2f / segmentsPerWire;
                     Vector3 offset = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * radius;
-                    vertices.Add(points[i] + rotation * offset);
+                    vertices.Add(points[i] - gameObjectPosition + rotation * offset);
                 }
             }
 
@@ -97,13 +108,13 @@ namespace GogoGaga.OptimizedRopesAndCables
 
             // Generate vertices and triangles for the start cap
             int startCapCenterIndex = vertices.Count;
-            vertices.Add(points[0]);
+            vertices.Add(points[0] - gameObjectPosition);
             Quaternion startRotation = Quaternion.LookRotation(points[1] - points[0]);
             for (int j = 0; j <= segmentsPerWire; j++)
             {
                 float angle = j * Mathf.PI * 2f / segmentsPerWire;
                 Vector3 offset = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * radius;
-                vertices.Add(points[0] + startRotation * offset);
+                vertices.Add(points[0] - gameObjectPosition + startRotation * offset);
 
                 if (j < segmentsPerWire)
                 {
@@ -115,13 +126,13 @@ namespace GogoGaga.OptimizedRopesAndCables
 
             // Generate vertices and triangles for the end cap
             int endCapCenterIndex = vertices.Count;
-            vertices.Add(points[points.Length - 1]);
+            vertices.Add(points[points.Length - 1] - gameObjectPosition);
             Quaternion endRotation = Quaternion.LookRotation(points[points.Length - 1] - points[points.Length - 2]);
             for (int j = 0; j <= segmentsPerWire; j++)
             {
                 float angle = j * Mathf.PI * 2f / segmentsPerWire;
                 Vector3 offset = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * radius;
-                vertices.Add(points[points.Length - 1] + endRotation * offset);
+                vertices.Add(points[points.Length - 1] - gameObjectPosition + endRotation * offset);
 
                 if (j < segmentsPerWire)
                 {
@@ -134,7 +145,6 @@ namespace GogoGaga.OptimizedRopesAndCables
             // Create the mesh
             Mesh mesh = new Mesh();
             mesh.vertices = vertices.ToArray();
-
             mesh.triangles = triangles.ToArray();
             mesh.RecalculateNormals();
 
@@ -146,7 +156,9 @@ namespace GogoGaga.OptimizedRopesAndCables
         {
             Vector3[] points = new Vector3[OverallDivision+ 1];
             for (int i = 0; i < points.Length; i++)
+            {
                 points[i] = rope.GetPointAt(i / (float)OverallDivision);
+            }
             CreateRopeMesh(points, ropeWidth, radialDivision);
         }
 
@@ -155,9 +167,13 @@ namespace GogoGaga.OptimizedRopesAndCables
             GenerateMesh();
         }
 
-        private void OnDrawGizmos()
+
+        private void OnDestroy()
         {
-            
+            Destroy(meshRenderer);
+            Destroy(meshFilter);
         }
+
+       
     }
 }

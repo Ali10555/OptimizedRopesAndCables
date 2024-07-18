@@ -524,12 +524,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1192687794}
-  - component: {fileID: 1192687796}
-  - component: {fileID: 1192687800}
   - component: {fileID: 1192687799}
+  - component: {fileID: 1192687798}
+  - component: {fileID: 1192687796}
   - component: {fileID: 1192687795}
   - component: {fileID: 1192687797}
-  - component: {fileID: 1192687798}
   m_Layer: 0
   m_Name: Spline
   m_TagString: Untagged
@@ -545,7 +544,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1192687789}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -1.74, y: 0, z: -0.71}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -567,14 +566,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2fcc597881599646a35e7161a5504ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startPoint: {fileID: 139886638}
+  startPoint: {fileID: 1697731000}
   midPoint: {fileID: 1753680178}
-  endPoint: {fileID: 1697731000}
+  endPoint: {fileID: 139886638}
   linePoints: 10
-  stiffness: 250
-  damping: 13
+  stiffness: 350
+  damping: 15
   ropeLength: 15
-  ropeWidth: 0.1
+  ropeWidth: 0.25
   midPointWeight: 1
   midPointPosition: 0.5
 --- !u!120 &1192687796
@@ -598,7 +597,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10306, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -624,13 +623,22 @@ LineRenderer:
   - {x: 0, y: 0, z: 1}
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 0.6
+    widthMultiplier: 1
     widthCurve:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 1
+        value: 0.25
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 0.25
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -642,8 +650,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0.122641504, g: 0.122641504, b: 0.122641504, a: 1}
-      key1: {r: 0.20754719, g: 0.20754719, b: 0.20754719, a: 1}
+      key0: {r: 1, g: 1, b: 1, a: 1}
+      key1: {r: 1, g: 1, b: 1, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -667,7 +675,7 @@ LineRenderer:
       atime6: 0
       atime7: 0
       m_Mode: 0
-      m_ColorSpace: 0
+      m_ColorSpace: -1
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
     numCornerVertices: 0
@@ -690,31 +698,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 1192687789}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 36bb784470883a244898108cda33580f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  perpendicularWind: 0
-  flipWindDirection: 0
-  windDirectionDegrees: -204
-  windForce: 0
---- !u!114 &1192687798
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1192687789}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5702366e18c47ef469ba2903e5846489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Weight: 0
-  OverallDivision: 3
+  OverallDivision: 6
   ropeWidth: 0.3
   radialDivision: 8
   material: {fileID: 2100000, guid: f3173e46b405f974e9de43ca224c9de8, type: 2}
---- !u!23 &1192687799
+--- !u!23 &1192687798
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -756,7 +747,7 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &1192687800
+--- !u!33 &1192687799
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -850,7 +841,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1753680177}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: -0.9300003, z: 0.5499999}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
