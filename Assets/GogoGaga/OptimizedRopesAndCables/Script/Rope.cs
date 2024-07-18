@@ -114,7 +114,10 @@ namespace GogoGaga.OptimizedRopesAndCables
             return point;
         }
 
-
+        public Vector3 GetPointAt(float t)
+        {
+            return GetRationalBezierPoint(startPoint.position, currentValue, endPoint.position, t, startPointWeight, midPointWeight, endPointWeight);
+        }
 
         void FixedUpdate()
         {
