@@ -67,6 +67,9 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         private void Update()
         {
+            if (!startPoint || !endPoint)
+                return;
+
             SetSplinePoint();
         }
 
@@ -131,6 +134,9 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         void FixedUpdate()
         {
+            if (!startPoint || !endPoint)
+                return;
+
             SimulatePhysics();
         }
 
@@ -156,8 +162,8 @@ namespace GogoGaga.OptimizedRopesAndCables
                 return;
             Vector3 midPos = GetMidPoint();
 
-            Gizmos.color = Color.red;
-            Gizmos.DrawSphere(midPos, 0.2f);
+           // Gizmos.color = Color.red;
+           // Gizmos.DrawSphere(midPos, 0.2f);
         }
     }
 }

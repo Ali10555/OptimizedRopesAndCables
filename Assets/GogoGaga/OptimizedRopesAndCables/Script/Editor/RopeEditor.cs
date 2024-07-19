@@ -4,7 +4,6 @@ using UnityEditor;
 namespace GogoGaga.OptimizedRopesAndCables
 {
 
-    [CanEditMultipleObjects]
     [CustomEditor(typeof(Rope))]
     public class RopeEditor : Editor
     {
@@ -51,6 +50,11 @@ namespace GogoGaga.OptimizedRopesAndCables
                 {
 
                     component.gameObject.AddComponent<RopeMesh>();
+                }
+
+                if(component.TryGetComponent(out LineRenderer lineRenderer))
+                {
+                    lineRenderer.enabled = false;
                 }
             }
 
@@ -99,6 +103,7 @@ namespace GogoGaga.OptimizedRopesAndCables
             
             EditorGUILayout.Space(2);
 
+
             //Start Point...
             SerializedProperty startPoint = serializedObject.FindProperty(
                 nameof(component.startPoint)
@@ -108,6 +113,7 @@ namespace GogoGaga.OptimizedRopesAndCables
                         "Rope Start",
                         startPoint.objectReferenceValue,
                         typeof(Transform), true);
+
 
             EditorGUILayout.Space(2);
 
@@ -123,6 +129,7 @@ namespace GogoGaga.OptimizedRopesAndCables
                         typeof(Transform), true);
 
             EditorGUILayout.Space(2);
+            
 
             //End Point...
             SerializedProperty endPoint = serializedObject.FindProperty(
@@ -135,9 +142,36 @@ namespace GogoGaga.OptimizedRopesAndCables
                         typeof(Transform), true);
 
             EditorGUILayout.Space(2);
+
+            CreateTransforms();
+
+            EditorGUILayout.Space(2);
             EditorGUILayout.EndVertical();
         }
 
+        void CreateTransforms()
+        {
+            if(!component.startPoint && !component.endPoint)
+            {
+                if(GUILayout.Button("Create Points"))
+                {
+                    component.startPoint = new GameObject("Start Point").transform;
+                    component.startPoint.parent = component.transform;
+                    component.startPoint.localPosition = component.transform.forward * 2;
+
+                    component.endPoint = new GameObject("End Point").transform;
+                    component.endPoint.parent = component.transform;
+                    component.endPoint.localPosition = -component.transform.forward * 2;
+
+                    if (!component.midPoint)
+                    {
+                        component.midPoint = new GameObject("Mid Point").transform;
+                        component.midPoint.parent = component.transform;
+                        component.midPoint.localPosition = -component.transform.up * 2;
+                    }
+                }
+            }
+        }
 
         void RopeProperties()
         {

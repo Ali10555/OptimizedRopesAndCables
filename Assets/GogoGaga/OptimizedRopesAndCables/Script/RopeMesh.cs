@@ -7,10 +7,12 @@ namespace GogoGaga.OptimizedRopesAndCables
     [RequireComponent(typeof (MeshFilter)), RequireComponent(typeof(MeshRenderer)), RequireComponent(typeof(Rope))]
     public class RopeMesh : MonoBehaviour
     {
-        public int OverallDivision = 6;
-        public float ropeWidth = 0.3f;
-        public int radialDivision = 8;
+        [Range(3,25)]public int OverallDivision = 6;
+        [Range(0.01f,10)]public float ropeWidth = 0.3f;
+        [Range(3,20)]public int radialDivision = 8;
+        [Tooltip("For now only base color is applied")]
         public Material material;
+
         Rope rope;
         MeshFilter meshFilter;
         MeshRenderer meshRenderer;
