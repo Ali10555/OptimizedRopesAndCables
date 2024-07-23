@@ -52,6 +52,18 @@ namespace GogoGaga.OptimizedRopesAndCables
         private LineRenderer lineRenderer;
         private bool isFirstFrame = true;
 
+        private Vector3 prevStartPointPosition;
+        private Vector3 prevEndPointPosition;
+        private Vector3 prevMidPointPosition;
+        
+        private float prevLineQuality;
+        private float prevRopeWidth;
+        private float prevstiffness;
+        private float prevDampness;
+        private float prevRopeLength;
+        
+        
+        
         private void Start()
         {
             InitializeLineRenderer();
@@ -97,11 +109,21 @@ namespace GogoGaga.OptimizedRopesAndCables
             {
                 SetSplinePoint();
                 SimulatePhysics();
-
-                if (!Application.isPlaying)
+                
+                if (!Application.isPlaying && (IsPointsMoved() || IsRopeSettingsChanged()) )
                 {
                     NotifyPointsChanged();
                 }
+                
+                prevStartPointPosition = startPoint.position;
+                prevEndPointPosition = endPoint.position;
+                prevMidPointPosition = midPoint == null ? Vector3.zero : midPoint.position;
+                
+                prevLineQuality = linePoints;
+                prevRopeWidth = ropeWidth;
+                prevstiffness = stiffness;
+                prevDampness = damping;
+                prevRopeLength = ropeLength;
             }
         }
 
@@ -223,6 +245,8 @@ namespace GogoGaga.OptimizedRopesAndCables
         public void SetStartPoint(Transform newStartPoint, bool instantAssign = false)
         {
             startPoint = newStartPoint;
+            prevStartPointPosition = startPoint==null ? Vector3.zero : startPoint.position;
+            
             if (instantAssign || newStartPoint == null)
             {
                 RecalculateRope();
@@ -233,6 +257,8 @@ namespace GogoGaga.OptimizedRopesAndCables
         public void SetEndPoint(Transform newEndPoint, bool instantAssign = false)
         {
             endPoint = newEndPoint;
+            prevEndPointPosition = endPoint == null ? Vector3.zero: endPoint.position;
+            
             if (instantAssign || newEndPoint == null)
             {
                 RecalculateRope();
@@ -259,6 +285,24 @@ namespace GogoGaga.OptimizedRopesAndCables
             OnPointsChanged?.Invoke();
         }
 
+        private bool IsPointsMoved()
+        {
+            var startPointMoved = startPoint.position != prevStartPointPosition;
+            var endPointMoved = endPoint.position != prevEndPointPosition;
+            var midPointMoved = midPoint != null && midPoint.position != prevMidPointPosition;
+            return startPointMoved || endPointMoved || midPointMoved;
+        }
+        
+        private bool IsRopeSettingsChanged()
+        {
+            var lineQualityChanged = linePoints != prevLineQuality;
+            var ropeWidthChanged = ropeWidth != prevRopeWidth;
+            var stiffnessChanged = stiffness != prevstiffness;
+            var dampnessChanged = damping != prevDampness;
+            var ropeLengthChanged = ropeLength != prevRopeLength;
+            return lineQualityChanged || ropeWidthChanged || stiffnessChanged || dampnessChanged || ropeLengthChanged;
+        }
+        
         #if UNITY_EDITOR
         private void ForceRepaint()
         {
