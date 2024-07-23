@@ -1,11 +1,17 @@
 using UnityEngine;
+using System;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace GogoGaga.OptimizedRopesAndCables
 {
-
+    [ExecuteAlways]
     [RequireComponent(typeof(LineRenderer))]
     public class Rope : MonoBehaviour
     {
+        public event Action OnPointsChanged;
+
         [Header("Rope Transforms")]
         [Tooltip("The rope will start at this point")]
         public Transform startPoint;
@@ -29,97 +35,132 @@ namespace GogoGaga.OptimizedRopesAndCables
         [Header("Rational Bezier Weight Control")]
         [Tooltip("Adjust the middle control point weight for the Rational Bezier curve")]
         [Range(1, 15)] public float midPointWeight = 1f;
-        float startPointWeight = 1f; //these need to stay at 1, could be removed but makes calling the rational bezier function easier to read and understand
-        float endPointWeight = 1f;
+        private const float StartPointWeight = 1f; //these need to stay at 1, could be removed but makes calling the rational bezier function easier to read and understand
+        private const float EndPointWeight = 1f;
 
         [Header("Midpoint Position")]
         [Tooltip("Position of the midpoint along the line between start and end points")]
-        [Range(0.25f, 0.75f)] public float midPointPosition = 0.5f; //undesired line behaviour and midpoint position outside this safe range, there's probably a better way to do this
-
-
+        [Range(0.25f, 0.75f)] public float midPointPosition = 0.5f;
 
         private Vector3 currentValue;
         private Vector3 currentVelocity;
         private Vector3 targetValue;
         public Vector3 otherPhysicsFactors { get; set; }
-        float valueThreshold = 0.01f;
-        float velocityThreshold = 0.01f;
+        private const float valueThreshold = 0.01f;
+        private const float velocityThreshold = 0.01f;
 
-        LineRenderer lineRenderer;
+        private LineRenderer lineRenderer;
+        private bool isFirstFrame = true;
 
         private void Start()
         {
-            lineRenderer = GetComponent<LineRenderer>();
-            lineRenderer.startWidth = ropeWidth;
-            lineRenderer.endWidth = ropeWidth;
-            currentValue = GetMidPoint();
+            InitializeLineRenderer();
+            if (AreEndPointsValid())
+            {
+                currentValue = GetMidPoint();
+                targetValue = currentValue;
+                currentVelocity = Vector3.zero;
+                SetSplinePoint(); // Ensure initial spline point is set correctly
+            }
         }
 
         private void OnValidate()
         {
-            if(!lineRenderer)
+            if (!Application.isPlaying)
+            {
+                InitializeLineRenderer();
+                if (AreEndPointsValid())
+                {
+                    RecalculateRope();
+                    SimulatePhysics();
+                }
+                else
+                {
+                    lineRenderer.positionCount = 0;
+                }
+            }
+        }
+
+        private void InitializeLineRenderer()
+        {
+            if (!lineRenderer)
+            {
                 lineRenderer = GetComponent<LineRenderer>();
-            
+            }
             lineRenderer.startWidth = ropeWidth;
             lineRenderer.endWidth = ropeWidth;
         }
 
-
         private void Update()
         {
-            if (!startPoint || !endPoint)
-                return;
+            if (AreEndPointsValid())
+            {
+                SetSplinePoint();
+                SimulatePhysics();
 
-            SetSplinePoint();
+                if (!Application.isPlaying)
+                {
+                    NotifyPointsChanged();
+                }
+            }
         }
 
-        void SetSplinePoint()
+        private bool AreEndPointsValid()
+        {
+            return startPoint != null && endPoint != null;
+        }
+
+        private void SetSplinePoint()
         {
             if (lineRenderer.positionCount != linePoints + 1)
+            {
                 lineRenderer.positionCount = linePoints + 1;
+            }
 
             Vector3 mid = GetMidPoint();
             targetValue = mid;
             mid = currentValue;
 
             if (midPoint != null)
-                midPoint.position = GetRationalBezierPoint(startPoint.position, mid, endPoint.position, midPointPosition, startPointWeight, midPointWeight, endPointWeight);
+            {
+                midPoint.position = GetRationalBezierPoint(startPoint.position, mid, endPoint.position, midPointPosition, StartPointWeight, midPointWeight, EndPointWeight);
+            }
 
             for (int i = 0; i < linePoints; i++)
             {
-                Vector3 p = GetRationalBezierPoint(startPoint.position, mid, endPoint.position, i / (float)linePoints, startPointWeight, midPointWeight, endPointWeight);
+                Vector3 p = GetRationalBezierPoint(startPoint.position, mid, endPoint.position, i / (float)linePoints, StartPointWeight, midPointWeight, EndPointWeight);
                 lineRenderer.SetPosition(i, p);
             }
 
             lineRenderer.SetPosition(linePoints, endPoint.position);
         }
 
-        float CalculateYFactorAdjustment(float weight)
+        private float CalculateYFactorAdjustment(float weight)
         {
             //float k = 0.360f; //after testing this seemed to be a good value for most cases, more accurate k is available.
-            float k = Mathf.Lerp(0.493f, 0.323f, (Mathf.InverseLerp(1, 15, weight))); //K calculation that is more accurate, interpolates between precalculated values.
+            float k = Mathf.Lerp(0.493f, 0.323f, Mathf.InverseLerp(1, 15, weight)); //K calculation that is more accurate, interpolates between precalculated values.
             float w = 1f + k * Mathf.Log(weight);
-
             return w;
         }
 
-        Vector3 GetMidPoint()
+        private Vector3 GetMidPoint()
         {
-            var (startPointPosition, endPointPosition) = (startPoint.position, endPoint.position);
+            Vector3 startPointPosition = startPoint.position;
+            Vector3 endPointPosition = endPoint.position;
             Vector3 midpos = Vector3.Lerp(startPointPosition, endPointPosition, midPointPosition);
             float yFactor = (ropeLength - Mathf.Min(Vector3.Distance(startPointPosition, endPointPosition), ropeLength)) / CalculateYFactorAdjustment(midPointWeight);
             midpos.y -= yFactor;
             return midpos;
         }
 
-        Vector3 GetRationalBezierPoint(Vector3 p0, Vector3 p1, Vector3 p2, float t, float w0, float w1, float w2)
+        private Vector3 GetRationalBezierPoint(Vector3 p0, Vector3 p1, Vector3 p2, float t, float w0, float w1, float w2)
         {
-            //scale each point by it's weight (can probably remove w0 and w2 if the midpoint is the only adjustable weight)
+            //scale each point by its weight (can probably remove w0 and w2 if the midpoint is the only adjustable weight)
             Vector3 wp0 = w0 * p0;
             Vector3 wp1 = w1 * p1;
             Vector3 wp2 = w2 * p2;
 
-            //calculate the denominator of the rational bezier curve
+            //calculate the denominator of the rational Bézier curve
             float denominator = w0 * Mathf.Pow(1 - t, 2) + 2 * w1 * (1 - t) * t + w2 * Mathf.Pow(t, 2);
             //calculate the numerator and devide by the demoninator to get the point on the curve
             Vector3 point = (wp0 * Mathf.Pow(1 - t, 2) + wp1 * 2 * (1 - t) * t + wp2 * Mathf.Pow(t, 2)) / denominator;
@@ -129,18 +170,27 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         public Vector3 GetPointAt(float t)
         {
-            return GetRationalBezierPoint(startPoint.position, currentValue, endPoint.position, t, startPointWeight, midPointWeight, endPointWeight);
+            if (!AreEndPointsValid())
+            {
+                Debug.LogError("StartPoint or EndPoint is not assigned.");
+                return Vector3.zero;
+            }
+            return GetRationalBezierPoint(startPoint.position, currentValue, endPoint.position, t, StartPointWeight, midPointWeight, EndPointWeight);
         }
 
-        void FixedUpdate()
+        private void FixedUpdate()
         {
-            if (!startPoint || !endPoint)
-                return;
-
-            SimulatePhysics();
+            if (AreEndPointsValid())
+            {
+                if (!isFirstFrame)
+                {
+                    SimulatePhysics();
+                }
+                isFirstFrame = false;
+            }
         }
 
-        void SimulatePhysics()
+        private void SimulatePhysics()
         {
             float dampingFactor = Mathf.Max(0, 1 - damping * Time.fixedDeltaTime);
             Vector3 acceleration = (targetValue - currentValue) * stiffness * Time.fixedDeltaTime;
@@ -154,16 +204,70 @@ namespace GogoGaga.OptimizedRopesAndCables
             }
         }
 
-        
-
         private void OnDrawGizmos()
         {
-            if (endPoint == null || startPoint == null)
+            if (!AreEndPointsValid())
                 return;
-            Vector3 midPos = GetMidPoint();
 
-           // Gizmos.color = Color.red;
-           // Gizmos.DrawSphere(midPos, 0.2f);
+            Vector3 midPos = GetMidPoint();
+            // Uncomment if you need to visualize midpoint
+            // Gizmos.color = Color.red;
+            // Gizmos.DrawSphere(midPos, 0.2f);
         }
+
+        // New API methods for setting start and end points
+        // with instantAssign parameter to recalculate the rope immediately, without 
+        // animating the rope to the new position.
+        // When newStartPoint or newEndPoint is null, the rope will be recalculated immediately
+
+        public void SetStartPoint(Transform newStartPoint, bool instantAssign = false)
+        {
+            startPoint = newStartPoint;
+            if (instantAssign || newStartPoint == null)
+            {
+                RecalculateRope();
+            }
+            NotifyPointsChanged();
+        }
+
+        public void SetEndPoint(Transform newEndPoint, bool instantAssign = false)
+        {
+            endPoint = newEndPoint;
+            if (instantAssign || newEndPoint == null)
+            {
+                RecalculateRope();
+            }
+            NotifyPointsChanged();
+        }
+
+        public void RecalculateRope()
+        {
+            if (!AreEndPointsValid())
+            {
+                lineRenderer.positionCount = 0;
+                return;
+            }
+
+            currentValue = GetMidPoint();
+            targetValue = currentValue;
+            currentVelocity = Vector3.zero;
+            SetSplinePoint();
+        }
+
+        private void NotifyPointsChanged()
+        {
+            OnPointsChanged?.Invoke();
+        }
+
+        #if UNITY_EDITOR
+        private void ForceRepaint()
+        {
+            EditorApplication.update -= ForceRepaint;
+            if (this != null)
+            {
+                RecalculateRope();
+            }
+        }
+        #endif
     }
 }
