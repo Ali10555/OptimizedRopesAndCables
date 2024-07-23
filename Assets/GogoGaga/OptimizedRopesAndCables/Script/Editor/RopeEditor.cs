@@ -3,20 +3,38 @@ using UnityEditor;
 
 namespace GogoGaga.OptimizedRopesAndCables
 {
-
     [CustomEditor(typeof(Rope))]
     public class RopeEditor : Editor
     {
-        Rope component;
-        LineRenderer lineRenderer;
-        public override void OnInspectorGUI()
+        private Rope component;
+        private SerializedProperty startPoint;
+        private SerializedProperty midPoint;
+        private SerializedProperty endPoint;
+        private SerializedProperty linePoints;
+        private SerializedProperty ropeWidth;
+        private SerializedProperty stiffness;
+        private SerializedProperty damping;
+        private SerializedProperty ropeLength;
+        private SerializedProperty midPointPosition;
+        private SerializedProperty midPointWeight;
+
+        private void OnEnable()
         {
             component = (Rope)target;
-            if(component == null)
-                return;
+            startPoint = serializedObject.FindProperty(nameof(Rope.startPoint));
+            midPoint = serializedObject.FindProperty(nameof(Rope.midPoint));
+            endPoint = serializedObject.FindProperty(nameof(Rope.endPoint));
+            linePoints = serializedObject.FindProperty(nameof(Rope.linePoints));
+            ropeWidth = serializedObject.FindProperty(nameof(Rope.ropeWidth));
+            stiffness = serializedObject.FindProperty(nameof(Rope.stiffness));
+            damping = serializedObject.FindProperty(nameof(Rope.damping));
+            ropeLength = serializedObject.FindProperty(nameof(Rope.ropeLength));
+            midPointPosition = serializedObject.FindProperty(nameof(Rope.midPointPosition));
+            midPointWeight = serializedObject.FindProperty(nameof(Rope.midPointWeight));
+        }
 
-            Undo.RecordObject(component, "Waypoint Indicator: " + component.name);
-
+        public override void OnInspectorGUI()
+        {
             serializedObject.Update();
 
             Label();
@@ -26,36 +44,7 @@ namespace GogoGaga.OptimizedRopesAndCables
 
             if (GUILayout.Button("Add Mesh"))
             {
-                if (!component.GetComponent<MeshRenderer>())
-                {
-                    MeshRenderer meshRenderer = component.gameObject.AddComponent<MeshRenderer>();
-
-                    for (int i = 0; i < 10; i++)
-                    {
-                        UnityEditorInternal.ComponentUtility.MoveComponentUp(meshRenderer);
-                    }
-                }
-
-                if (!component.GetComponent<MeshFilter>())
-                {
-                    MeshFilter meshFilter = component.gameObject.AddComponent<MeshFilter>();
-
-                    for (int i = 0; i < 10; i++)
-                    {
-                        UnityEditorInternal.ComponentUtility.MoveComponentUp(meshFilter);
-                    }
-                }
-
-                if (!component.GetComponent<RopeMesh>())
-                {
-
-                    component.gameObject.AddComponent<RopeMesh>();
-                }
-
-                if(component.TryGetComponent(out LineRenderer lineRenderer))
-                {
-                    lineRenderer.enabled = false;
-                }
+                AddMeshComponents();
             }
 
             if (GUILayout.Button("Add Wind Effect"))
@@ -67,25 +56,20 @@ namespace GogoGaga.OptimizedRopesAndCables
             }
 
             serializedObject.ApplyModifiedProperties(); // Apply changes
-
         }
 
-        void Label()
+        private void Label()
         {
             string centeredText = "OPTIMIZED ROPE AND CABLE";
-            Vector3 minSize = new Vector2(300, 100); // Set a minimum window size
             GUIStyle buttonStyle = new GUIStyle(GUI.skin.button)
             {
                 alignment = TextAnchor.MiddleCenter,
-                fontSize = 14, // Adjust font size as needed
-                fontStyle = FontStyle.Bold // Optional  
+                fontSize = 14,
+                fontStyle = FontStyle.Bold
             };
 
-
             float availableWidth = EditorGUIUtility.currentViewWidth - EditorGUIUtility.labelWidth;
-
-            // Adjust font size to fit available width (consider character count)
-            buttonStyle.fontSize = (int)Mathf.Min(availableWidth / (centeredText.Length * 0.5f), 48);  // Adjust factor based on font
+            buttonStyle.fontSize = (int)Mathf.Min(availableWidth / (centeredText.Length * 0.5f), 48);
 
             if (GUILayout.Button(centeredText, buttonStyle))
             {
@@ -93,54 +77,18 @@ namespace GogoGaga.OptimizedRopesAndCables
             }
         }
 
-        void RopeTransforms()
+        private void RopeTransforms()
         {
             EditorGUILayout.Space(10);
-
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-
-            EditorGUILayout.LabelField("ROPE HANDLES",EditorStyles.boldLabel) ;
-            
+            EditorGUILayout.LabelField("ROPE HANDLES", EditorStyles.boldLabel);
             EditorGUILayout.Space(2);
 
-
-            //Start Point...
-            SerializedProperty startPoint = serializedObject.FindProperty(
-                nameof(component.startPoint)
-                );
-
-            startPoint.objectReferenceValue = EditorGUILayout.ObjectField(
-                        "Rope Start",
-                        startPoint.objectReferenceValue,
-                        typeof(Transform), true);
-
-
+            EditorGUILayout.PropertyField(startPoint, new GUIContent("Rope Start"));
             EditorGUILayout.Space(2);
-
-
-            //Mid Point...
-            SerializedProperty midPoint = serializedObject.FindProperty(
-               nameof(component.midPoint)
-               );
-
-            midPoint.objectReferenceValue = EditorGUILayout.ObjectField(
-                        new GUIContent("Mid Point (Optional)", "This will move at the center hanging from the rope, like a necklace, for example"),
-                        midPoint.objectReferenceValue,
-                        typeof(Transform), true);
-
+            EditorGUILayout.PropertyField(midPoint, new GUIContent("Mid Point (Optional)", "This will move at the center hanging from the rope, like a necklace, for example"));
             EditorGUILayout.Space(2);
-            
-
-            //End Point...
-            SerializedProperty endPoint = serializedObject.FindProperty(
-                nameof(component.endPoint)
-                );
-
-            endPoint.objectReferenceValue = EditorGUILayout.ObjectField(
-                        "Rope End",
-                        endPoint.objectReferenceValue,
-                        typeof(Transform), true);
-
+            EditorGUILayout.PropertyField(endPoint, new GUIContent("Rope End"));
             EditorGUILayout.Space(2);
 
             CreateTransforms();
@@ -149,11 +97,11 @@ namespace GogoGaga.OptimizedRopesAndCables
             EditorGUILayout.EndVertical();
         }
 
-        void CreateTransforms()
+        private void CreateTransforms()
         {
-            if(!component.startPoint && !component.endPoint)
+            if (!component.startPoint && !component.endPoint)
             {
-                if(GUILayout.Button("Create Points"))
+                if (GUILayout.Button("Create Points"))
                 {
                     component.startPoint = new GameObject("Start Point").transform;
                     component.startPoint.parent = component.transform;
@@ -169,109 +117,74 @@ namespace GogoGaga.OptimizedRopesAndCables
                         component.midPoint.parent = component.transform;
                         component.midPoint.localPosition = -component.transform.up * 2;
                     }
+
+                    serializedObject.Update(); // Update serialized object to reflect changes
                 }
             }
         }
 
-        void RopeProperties()
+        private void RopeProperties()
         {
             EditorGUILayout.Space(10);
-
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("ROPE PROPERTIES", EditorStyles.boldLabel);
-
             EditorGUILayout.Space(2);
 
-
-            EditorGUILayout.LabelField(new GUIContent("Line Quality", "How many points should the rope have, 2 would be a triangle with straight lines, 100 would be a very flexible rope with many parts"));
-            component.linePoints = EditorGUILayout.IntSlider(
-                component.linePoints,
-                2, 100
-                );
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUILayout.LabelField(new GUIContent("Rope Widht", "The Rope width set at start (changing this value during run time will produce no effect)"));
-            component.ropeWidth = EditorGUILayout.Slider(
-                component.ropeWidth,
-                0.01f, 10
-                );
-
-            if (EditorGUI.EndChangeCheck())
-            {
-                LineRenderer l= component.GetComponent<LineRenderer>();
-                l.startWidth = component.ropeWidth;
-                l.endWidth = component.ropeWidth;
-            }
-
-
-            EditorGUILayout.LabelField(new GUIContent("Rope Stiffness", "Value highly dependent on use case, a metal cable would have high stiffness, a rubber rope would have a low one"));
-            component.stiffness = EditorGUILayout.Slider(
-                component.stiffness,
-                0, 1000
-                );
-
-
-            EditorGUILayout.LabelField(new GUIContent("Rope Dampness", "How long is the rope, it will hang more or less from starting point to end point depending on this value"));
-            component.damping = EditorGUILayout.Slider(
-                component.damping,
-                0.01f, 100
-                );
-
-
-            EditorGUILayout.LabelField(new GUIContent("Rope Lenght", "How long is the rope, it will hang more or less from starting point to end point depending on this value"));
-            component.ropeLength = EditorGUILayout.Slider(
-                component.ropeLength,
-                0.1f, 1000
-                );
-
-
+            EditorGUILayout.PropertyField(linePoints, new GUIContent("Line Quality", "How many points should the rope have, 2 would be a triangle with straight lines, 100 would be a very flexible rope with many parts"));
+            EditorGUILayout.PropertyField(ropeWidth, new GUIContent("Rope Width", "The Rope width set at start (changing this value during run time will produce no effect)"));
+            EditorGUILayout.PropertyField(stiffness, new GUIContent("Rope Stiffness", "Value highly dependent on use case, a metal cable would have high stiffness, a rubber rope would have a low one"));
+            EditorGUILayout.PropertyField(damping, new GUIContent("Rope Dampness", "0 is no damping, 50 is a lot"));
+            EditorGUILayout.PropertyField(ropeLength, new GUIContent("Rope Length", "How long is the rope, it will hang more or less from starting point to end point depending on this value"));
 
             EditorGUILayout.Space(2);
             EditorGUILayout.EndVertical();
         }
 
-        void RopeCurve()
+        private void RopeCurve()
         {
             EditorGUILayout.Space(10);
-
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("ROPE CURVE", EditorStyles.boldLabel);
             EditorGUILayout.Space(2);
 
-
-            EditorGUILayout.LabelField(new GUIContent("Midpoint", "Position of the midpoint along the line between start and end points"));
-            component.midPointPosition = EditorGUILayout.Slider(
-                component.midPointPosition,
-                0.15f, 0.85f
-                );
-
-
-            EditorGUILayout.LabelField(new GUIContent("Midpoint Influence", "Adjust the middle control point weight for the Rational Bezier curve"));
-            component.midPointWeight = EditorGUILayout.Slider(
-                component.midPointWeight,
-                1f, 20f
-                );
-
+            EditorGUILayout.PropertyField(midPointPosition, new GUIContent("Midpoint", "Position of the midpoint along the line between start and end points"));
+            EditorGUILayout.PropertyField(midPointWeight, new GUIContent("Midpoint Influence", "Adjust the middle control point weight for the Rational Bezier curve"));
 
             EditorGUILayout.Space(2);
             EditorGUILayout.EndVertical();
         }
 
-        void Template()
+        private void AddMeshComponents()
         {
-            EditorGUILayout.Space(10);
+            if (!component.GetComponent<MeshRenderer>())
+            {
+                MeshRenderer meshRenderer = component.gameObject.AddComponent<MeshRenderer>();
 
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-            EditorGUILayout.LabelField("ROPE Properties", EditorStyles.boldLabel);
-            EditorGUILayout.Space(2);
+                for (int i = 0; i < 10; i++)
+                {
+                    UnityEditorInternal.ComponentUtility.MoveComponentUp(meshRenderer);
+                }
+            }
 
+            if (!component.GetComponent<MeshFilter>())
+            {
+                MeshFilter meshFilter = component.gameObject.AddComponent<MeshFilter>();
 
-            
+                for (int i = 0; i < 10; i++)
+                {
+                    UnityEditorInternal.ComponentUtility.MoveComponentUp(meshFilter);
+                }
+            }
 
+            if (!component.GetComponent<RopeMesh>())
+            {
+                component.gameObject.AddComponent<RopeMesh>();
+            }
 
-
-            EditorGUILayout.Space(2);
-            EditorGUILayout.EndVertical();
+            if (component.TryGetComponent(out LineRenderer lineRenderer))
+            {
+                lineRenderer.enabled = false;
+            }
         }
     }
 }
