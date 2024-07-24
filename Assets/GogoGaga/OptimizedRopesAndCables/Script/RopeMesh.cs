@@ -145,14 +145,14 @@ namespace GogoGaga.OptimizedRopesAndCables
                 else
                     direction = points[i] - points[i - 1];
 
-                Quaternion rotation = Quaternion.LookRotation(direction);
+                Quaternion rotation = Quaternion.LookRotation(direction, Vector3.up);
 
                 // Create vertices around a circle at this point
                 for (int j = 0; j <= segmentsPerWire; j++)
                 {
                     float angle = j * Mathf.PI * 2f / segmentsPerWire;
                     Vector3 offset = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * radius;
-                    vertices.Add(points[i] - gameObjectPosition + rotation * offset);
+                    vertices.Add(transform.InverseTransformPoint(points[i] + rotation * offset));
 
                     float u = (float)j / segmentsPerWire;
                     float v = currentLength * tilingPerMeter;
@@ -185,16 +185,15 @@ namespace GogoGaga.OptimizedRopesAndCables
                 }
             }
 
-            // Generate vertices, triangles and UVs for the start cap
             int startCapCenterIndex = vertices.Count;
-            vertices.Add(points[0] - gameObjectPosition);
+            vertices.Add(transform.InverseTransformPoint(points[0]));
             uvs.Add(new Vector2(0.5f, 0)); // Center of the cap
             Quaternion startRotation = Quaternion.LookRotation(points[1] - points[0]);
             for (int j = 0; j <= segmentsPerWire; j++)
             {
                 float angle = j * Mathf.PI * 2f / segmentsPerWire;
                 Vector3 offset = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * radius;
-                vertices.Add(points[0] - gameObjectPosition + startRotation * offset);
+                vertices.Add(transform.InverseTransformPoint(points[0] + startRotation * offset));
 
                 if (j < segmentsPerWire)
                 {
@@ -206,16 +205,15 @@ namespace GogoGaga.OptimizedRopesAndCables
                 uvs.Add(new Vector2((Mathf.Cos(angle) + 1) / 2, (Mathf.Sin(angle) + 1) / 2)); // UVs for the cap
             }
 
-            // Generate vertices, triangles and UVs for the end cap
             int endCapCenterIndex = vertices.Count;
-            vertices.Add(points[points.Length - 1] - gameObjectPosition);
+            vertices.Add(transform.InverseTransformPoint(points[points.Length - 1]));
             uvs.Add(new Vector2(0.5f, currentLength * tilingPerMeter)); // Center of the cap
             Quaternion endRotation = Quaternion.LookRotation(points[points.Length - 1] - points[points.Length - 2]);
             for (int j = 0; j <= segmentsPerWire; j++)
             {
                 float angle = j * Mathf.PI * 2f / segmentsPerWire;
                 Vector3 offset = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * radius;
-                vertices.Add(points[points.Length - 1] - gameObjectPosition + endRotation * offset);
+                vertices.Add(transform.InverseTransformPoint(points[points.Length - 1] + endRotation * offset));
 
                 if (j < segmentsPerWire)
                 {
