@@ -79,7 +79,7 @@ namespace GogoGaga.OptimizedRopesAndCables
             if (rope.startPoint == null || rope.endPoint == null)
             {
                 isStartOrEndPointMissing = true;
-                Debug.LogError("StartPoint or EndPoint is not assigned.");
+                Debug.LogError("StartPoint or EndPoint is not assigned.", gameObject);
             }
             else
             {
@@ -109,7 +109,7 @@ namespace GogoGaga.OptimizedRopesAndCables
             // Validate input
             if (points == null || points.Length < 2)
             {
-                Debug.LogError("Need at least two points to create a rope mesh.");
+                Debug.LogError("Need at least two points to create a rope mesh.", gameObject);
                 return;
             }
 
