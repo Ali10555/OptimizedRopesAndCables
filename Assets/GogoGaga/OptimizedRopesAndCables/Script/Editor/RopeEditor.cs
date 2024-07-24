@@ -131,10 +131,18 @@ namespace GogoGaga.OptimizedRopesAndCables
             EditorGUILayout.Space(2);
 
             EditorGUILayout.PropertyField(linePoints, new GUIContent("Line Quality", "How many points should the rope have, 2 would be a triangle with straight lines, 100 would be a very flexible rope with many parts"));
+
             EditorGUILayout.PropertyField(ropeWidth, new GUIContent("Rope Width", "The Rope width set at start (changing this value during run time will produce no effect)"));
+            component.ropeWidth = component.ropeWidth < 0.001f ? 0.001f : component.ropeWidth;
+
             EditorGUILayout.PropertyField(stiffness, new GUIContent("Rope Stiffness", "Value highly dependent on use case, a metal cable would have high stiffness, a rubber rope would have a low one"));
+            component.stiffness = component.stiffness < 1f ? 1f : component.stiffness;
+
             EditorGUILayout.PropertyField(damping, new GUIContent("Rope Dampness", "0 is no damping, 50 is a lot"));
+            component.damping = component.damping < 0.01f ? 0.01f : component.damping;
+
             EditorGUILayout.PropertyField(ropeLength, new GUIContent("Rope Length", "How long is the rope, it will hang more or less from starting point to end point depending on this value"));
+            component.ropeLength = component.ropeLength < 0.01f ? 0.01f : component.ropeLength;
 
             EditorGUILayout.Space(2);
             EditorGUILayout.EndVertical();
