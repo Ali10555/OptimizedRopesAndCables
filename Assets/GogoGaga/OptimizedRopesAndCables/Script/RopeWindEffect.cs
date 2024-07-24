@@ -52,7 +52,7 @@ namespace GogoGaga.OptimizedRopesAndCables
 
             if (perpendicularWind)
             {
-                Vector3 startToEnd = rope.endPoint.position - rope.startPoint.position; //calculate the vector from start to end
+                Vector3 startToEnd = rope.EndPoint.position - rope.StartPoint.position; //calculate the vector from start to end
                 windDirection = Vector3.Cross(startToEnd, Vector3.up).normalized; //find the perpendicular direction
 
                 //make some noise and calculate the wind direction in degrees

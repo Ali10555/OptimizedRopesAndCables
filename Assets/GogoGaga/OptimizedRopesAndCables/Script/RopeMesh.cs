@@ -26,6 +26,9 @@ namespace GogoGaga.OptimizedRopesAndCables
         private void OnValidate()
         {
             InitializeComponents();
+            if(rope.IsPrefab)
+                return;
+            
             SubscribeToRopeEvents();
             if (meshRenderer && material)
             {
@@ -76,7 +79,17 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         private void CheckEndPoints()
         {
-            if (rope.startPoint == null || rope.endPoint == null)
+            //check if start and end points are assigned
+            
+            //if this is a prefab, we can't check the start and end points
+            //so we will assume that they are assigned
+            if (gameObject.scene.rootCount == 0)
+            {
+                isStartOrEndPointMissing = false;
+                return;
+            }
+            
+            if (rope.StartPoint == null || rope.EndPoint == null)
             {
                 isStartOrEndPointMissing = true;
                 Debug.LogError("StartPoint or EndPoint is not assigned.", gameObject);
@@ -255,6 +268,9 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         void Update()
         {
+            if(rope.IsPrefab)
+                return;
+            
             if (Application.isPlaying)
             {
                 GenerateMesh();

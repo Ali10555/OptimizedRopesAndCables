@@ -21,9 +21,9 @@ namespace GogoGaga.OptimizedRopesAndCables
         private void OnEnable()
         {
             component = (Rope)target;
-            startPoint = serializedObject.FindProperty(nameof(Rope.startPoint));
-            midPoint = serializedObject.FindProperty(nameof(Rope.midPoint));
-            endPoint = serializedObject.FindProperty(nameof(Rope.endPoint));
+            startPoint = serializedObject.FindProperty("startPoint");
+            midPoint = serializedObject.FindProperty("midPoint");
+            endPoint = serializedObject.FindProperty("endPoint");
             linePoints = serializedObject.FindProperty(nameof(Rope.linePoints));
             ropeWidth = serializedObject.FindProperty(nameof(Rope.ropeWidth));
             stiffness = serializedObject.FindProperty(nameof(Rope.stiffness));
@@ -99,23 +99,27 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         private void CreateTransforms()
         {
-            if (!component.startPoint && !component.endPoint)
+            if (!component.StartPoint && !component.EndPoint)
             {
                 if (GUILayout.Button("Create Points"))
                 {
-                    component.startPoint = new GameObject("Start Point").transform;
-                    component.startPoint.parent = component.transform;
-                    component.startPoint.localPosition = component.transform.forward * 2;
+                    var newStartPoint = new GameObject("Start Point").transform;
+                    
+                    newStartPoint.parent = component.transform;
+                    newStartPoint.localPosition = component.transform.forward * 2;
+                    component.SetStartPoint(newStartPoint,true);
 
-                    component.endPoint = new GameObject("End Point").transform;
-                    component.endPoint.parent = component.transform;
-                    component.endPoint.localPosition = -component.transform.forward * 2;
-
-                    if (!component.midPoint)
+                    var newEndPoint = new GameObject("End Point").transform;
+                    newEndPoint.parent = component.transform;
+                    newEndPoint.localPosition = -component.transform.forward * 2;
+                    component.SetEndPoint(newEndPoint,true);
+                    
+                    if (!component.MidPoint)
                     {
-                        component.midPoint = new GameObject("Mid Point").transform;
-                        component.midPoint.parent = component.transform;
-                        component.midPoint.localPosition = -component.transform.up * 2;
+                        var newMidPoint = new GameObject("Mid Point").transform;
+                        newMidPoint.parent = component.transform;
+                        newMidPoint.localPosition = -component.transform.up * 2;
+                        component.SetMidPoint(newMidPoint,true);
                     }
 
                     serializedObject.Update(); // Update serialized object to reflect changes

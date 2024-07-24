@@ -14,13 +14,16 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         [Header("Rope Transforms")]
         [Tooltip("The rope will start at this point")]
-        public Transform startPoint;
+        [SerializeField] private Transform startPoint;
+        public Transform StartPoint => startPoint;
 
         [Tooltip("This will move at the center hanging from the rope, like a necklace, for example")]
-        public Transform midPoint;
+        [SerializeField] private Transform midPoint;
+        public Transform MidPoint => midPoint;
 
         [Tooltip("The rope will end at this point")]
-        public Transform endPoint;
+        [SerializeField] private Transform endPoint;
+        public Transform EndPoint => endPoint;
 
         [Header("Rope Settings")]
         [Tooltip("How many points should the rope have, 2 would be a triangle with straight lines, 100 would be a very flexible rope with many parts")]
@@ -70,6 +73,7 @@ namespace GogoGaga.OptimizedRopesAndCables
         private float prevRopeLength;
         
         
+        public bool IsPrefab => gameObject.scene.rootCount == 0;
         
         private void Start()
         {
@@ -113,6 +117,11 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         private void Update()
         {
+            if (IsPrefab)
+            {
+                return;
+            }
+            
             if (AreEndPointsValid())
             {
                 SetSplinePoint();
@@ -212,6 +221,11 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         private void FixedUpdate()
         {
+            if (IsPrefab)
+            {
+                return;
+            }
+            
             if (AreEndPointsValid())
             {
                 if (!isFirstFrame)
@@ -265,7 +279,18 @@ namespace GogoGaga.OptimizedRopesAndCables
 
             NotifyPointsChanged();
         }
-
+        public void SetMidPoint(Transform newMidPoint, bool instantAssign = false)
+        {
+            midPoint = newMidPoint;
+            prevMidPointPosition = midPoint == null ? 0.5f : midPointPosition;
+            
+            if (instantAssign || newMidPoint == null)
+            {
+                RecalculateRope();
+            }
+            NotifyPointsChanged();
+        }
+        
         public void SetEndPoint(Transform newEndPoint, bool instantAssign = false)
         {
             endPoint = newEndPoint;
