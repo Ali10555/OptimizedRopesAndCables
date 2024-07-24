@@ -15,20 +15,26 @@ namespace GogoGaga.OptimizedRopesAndCables
         [Header("Rope Transforms")]
         [Tooltip("The rope will start at this point")]
         public Transform startPoint;
+
         [Tooltip("This will move at the center hanging from the rope, like a necklace, for example")]
         public Transform midPoint;
+
         [Tooltip("The rope will end at this point")]
         public Transform endPoint;
 
         [Header("Rope Settings")]
         [Tooltip("How many points should the rope have, 2 would be a triangle with straight lines, 100 would be a very flexible rope with many parts")]
         [Range(2, 100)] public int linePoints = 10;
+
         [Tooltip("Value highly dependent on use case, a metal cable would have high stiffness, a rubber rope would have a low one")]
         public float stiffness = 350f;
+
         [Tooltip("0 is no damping, 50 is a lot")]
         public float damping = 15f;
+
         [Tooltip("How long is the rope, it will hang more or less from starting point to end point depending on this value")]
         public float ropeLength = 15;
+
         [Tooltip("The Rope width set at start (changing this value during run time will produce no effect)")]
         public float ropeWidth = 0.1f;
 
@@ -54,8 +60,9 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         private Vector3 prevStartPointPosition;
         private Vector3 prevEndPointPosition;
-        private Vector3 prevMidPointPosition;
-        
+        private float prevMidPointPosition;
+        private float prevMidPointWeight;
+
         private float prevLineQuality;
         private float prevRopeWidth;
         private float prevstiffness;
@@ -99,6 +106,7 @@ namespace GogoGaga.OptimizedRopesAndCables
             {
                 lineRenderer = GetComponent<LineRenderer>();
             }
+
             lineRenderer.startWidth = ropeWidth;
             lineRenderer.endWidth = ropeWidth;
         }
@@ -108,17 +116,18 @@ namespace GogoGaga.OptimizedRopesAndCables
             if (AreEndPointsValid())
             {
                 SetSplinePoint();
-                SimulatePhysics();
-                
-                if (!Application.isPlaying && (IsPointsMoved() || IsRopeSettingsChanged()) )
+
+                if (!Application.isPlaying && (IsPointsMoved() || IsRopeSettingsChanged()))
                 {
+                    SimulatePhysics();
                     NotifyPointsChanged();
                 }
-                
+
                 prevStartPointPosition = startPoint.position;
                 prevEndPointPosition = endPoint.position;
-                prevMidPointPosition = midPoint == null ? Vector3.zero : midPoint.position;
-                
+                prevMidPointPosition = midPointPosition;
+                prevMidPointWeight = midPointWeight;
+
                 prevLineQuality = linePoints;
                 prevRopeWidth = ropeWidth;
                 prevstiffness = stiffness;
@@ -197,6 +206,7 @@ namespace GogoGaga.OptimizedRopesAndCables
                 Debug.LogError("StartPoint or EndPoint is not assigned.");
                 return Vector3.zero;
             }
+
             return GetRationalBezierPoint(startPoint.position, currentValue, endPoint.position, t, StartPointWeight, midPointWeight, EndPointWeight);
         }
 
@@ -208,6 +218,7 @@ namespace GogoGaga.OptimizedRopesAndCables
                 {
                     SimulatePhysics();
                 }
+
                 isFirstFrame = false;
             }
         }
@@ -245,24 +256,26 @@ namespace GogoGaga.OptimizedRopesAndCables
         public void SetStartPoint(Transform newStartPoint, bool instantAssign = false)
         {
             startPoint = newStartPoint;
-            prevStartPointPosition = startPoint==null ? Vector3.zero : startPoint.position;
-            
+            prevStartPointPosition = startPoint == null ? Vector3.zero : startPoint.position;
+
             if (instantAssign || newStartPoint == null)
             {
                 RecalculateRope();
             }
+
             NotifyPointsChanged();
         }
 
         public void SetEndPoint(Transform newEndPoint, bool instantAssign = false)
         {
             endPoint = newEndPoint;
-            prevEndPointPosition = endPoint == null ? Vector3.zero: endPoint.position;
-            
+            prevEndPointPosition = endPoint == null ? Vector3.zero : endPoint.position;
+
             if (instantAssign || newEndPoint == null)
             {
                 RecalculateRope();
             }
+
             NotifyPointsChanged();
         }
 
@@ -289,29 +302,26 @@ namespace GogoGaga.OptimizedRopesAndCables
         {
             var startPointMoved = startPoint.position != prevStartPointPosition;
             var endPointMoved = endPoint.position != prevEndPointPosition;
-            var midPointMoved = midPoint != null && midPoint.position != prevMidPointPosition;
-            return startPointMoved || endPointMoved || midPointMoved;
+            return startPointMoved || endPointMoved;
         }
-        
+
         private bool IsRopeSettingsChanged()
         {
-            var lineQualityChanged = linePoints != prevLineQuality;
-            var ropeWidthChanged = ropeWidth != prevRopeWidth;
-            var stiffnessChanged = stiffness != prevstiffness;
-            var dampnessChanged = damping != prevDampness;
-            var ropeLengthChanged = ropeLength != prevRopeLength;
-            return lineQualityChanged || ropeWidthChanged || stiffnessChanged || dampnessChanged || ropeLengthChanged;
+            var lineQualityChanged = !Mathf.Approximately(linePoints, prevLineQuality);
+            var ropeWidthChanged = !Mathf.Approximately(ropeWidth, prevRopeWidth);
+            var stiffnessChanged = !Mathf.Approximately(stiffness, prevstiffness);
+            var dampnessChanged = !Mathf.Approximately(damping, prevDampness);
+            var ropeLengthChanged = !Mathf.Approximately(ropeLength, prevRopeLength);
+            var midPointPositionChanged = !Mathf.Approximately(midPointPosition, prevMidPointPosition);
+            var midPointWeightChanged = !Mathf.Approximately(midPointWeight, prevMidPointWeight);
+
+            return lineQualityChanged
+                   || ropeWidthChanged
+                   || stiffnessChanged
+                   || dampnessChanged
+                   || ropeLengthChanged
+                   || midPointPositionChanged
+                   || midPointWeightChanged;
         }
-        
-        #if UNITY_EDITOR
-        private void ForceRepaint()
-        {
-            EditorApplication.update -= ForceRepaint;
-            if (this != null)
-            {
-                RecalculateRope();
-            }
-        }
-        #endif
     }
 }
