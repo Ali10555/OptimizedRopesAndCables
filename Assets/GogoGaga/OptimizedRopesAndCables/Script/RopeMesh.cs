@@ -23,10 +23,15 @@ namespace GogoGaga.OptimizedRopesAndCables
         private Mesh ropeMesh;
         private bool isStartOrEndPointMissing;
 
+        // Use fields to store lists
+        private List<Vector3> vertices = new List<Vector3>();
+        private List<int> triangles = new List<int>();
+        private List<Vector2> uvs = new List<Vector2>();
+
         private void OnValidate()
         {
             InitializeComponents();
-            if(rope.IsPrefab)
+            if (rope.IsPrefab)
                 return;
             
             SubscribeToRopeEvents();
@@ -79,10 +84,7 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         private void CheckEndPoints()
         {
-            //check if start and end points are assigned
-            
-            //if this is a prefab, we can't check the start and end points
-            //so we will assume that they are assigned
+            // Check if start and end points are assigned
             if (gameObject.scene.rootCount == 0)
             {
                 isStartOrEndPointMissing = false;
@@ -126,25 +128,29 @@ namespace GogoGaga.OptimizedRopesAndCables
                 return;
             }
 
-            // Get the position of the GameObject to which this script is attached
+            if (ropeMesh == null)
+            {
+                ropeMesh = new Mesh { name = "RopeMesh" };
+                meshFilter.mesh = ropeMesh;
+            }
+            else
+            {
+                ropeMesh.Clear();
+            }
+
             Vector3 gameObjectPosition = transform.position;
 
-            // Create lists to hold vertices, triangles, and UVs
-            List<Vector3> vertices = new List<Vector3>();
-            List<int> triangles = new List<int>();
-            List<Vector2> uvs = new List<Vector2>();
+            // Clear the lists before using them
+            vertices.Clear();
+            triangles.Clear();
+            uvs.Clear();
 
             float currentLength = 0f;
 
             // Generate vertices and UVs for each segment along the points
             for (int i = 0; i < points.Length; i++)
             {
-                Vector3 direction = Vector3.forward;
-                if (i < points.Length - 1)
-                    direction = points[i + 1] - points[i];
-                else
-                    direction = points[i] - points[i - 1];
-
+                Vector3 direction = i < points.Length - 1 ? points[i + 1] - points[i] : points[i] - points[i - 1];
                 Quaternion rotation = Quaternion.LookRotation(direction, Vector3.up);
 
                 // Create vertices around a circle at this point
@@ -185,6 +191,7 @@ namespace GogoGaga.OptimizedRopesAndCables
                 }
             }
 
+            // Generate vertices, triangles, and UVs for the start cap
             int startCapCenterIndex = vertices.Count;
             vertices.Add(transform.InverseTransformPoint(points[0]));
             uvs.Add(new Vector2(0.5f, 0)); // Center of the cap
@@ -202,9 +209,10 @@ namespace GogoGaga.OptimizedRopesAndCables
                     triangles.Add(startCapCenterIndex + j + 2);
                 }
 
-                uvs.Add(new Vector2((Mathf.Cos(angle) + 1) / 2, (Mathf.Sin(angle) + 1) / 2)); // UVs for the cap
+                uvs.Add(new Vector2((Mathf.Cos(angle) + 1) / 2, (Mathf.Sin(angle) + 1) / 2));
             }
 
+            // Generate vertices, triangles, and UVs for the end cap
             int endCapCenterIndex = vertices.Count;
             vertices.Add(transform.InverseTransformPoint(points[points.Length - 1]));
             uvs.Add(new Vector2(0.5f, currentLength * tilingPerMeter)); // Center of the cap
@@ -222,21 +230,13 @@ namespace GogoGaga.OptimizedRopesAndCables
                     triangles.Add(endCapCenterIndex + j + 2);
                 }
 
-                uvs.Add(new Vector2((Mathf.Cos(angle) + 1) / 2, (Mathf.Sin(angle) + 1) / 2)); // UVs for the cap
+                uvs.Add(new Vector2((Mathf.Cos(angle) + 1) / 2, (Mathf.Sin(angle) + 1) / 2));
             }
 
-            // Create the mesh
-            Mesh mesh = new Mesh
-            {
-                name = "RopeMesh",
-                vertices = vertices.ToArray(),
-                triangles = triangles.ToArray(),
-                uv = uvs.ToArray()
-            };
-            mesh.RecalculateNormals();
-
-            // Assign the mesh to the MeshFilter
-            meshFilter.mesh = mesh;
+            ropeMesh.vertices = vertices.ToArray();
+            ropeMesh.triangles = triangles.ToArray();
+            ropeMesh.uv = uvs.ToArray();
+            ropeMesh.RecalculateNormals();
         }
 
         void GenerateMesh()
@@ -248,7 +248,6 @@ namespace GogoGaga.OptimizedRopesAndCables
 
             if (isStartOrEndPointMissing)
             {
-                // Clear the mesh if endpoints are missing
                 if (meshFilter.sharedMesh != null)
                 {
                     meshFilter.sharedMesh.Clear();
@@ -266,9 +265,9 @@ namespace GogoGaga.OptimizedRopesAndCables
 
         void Update()
         {
-            if(rope.IsPrefab)
+            if (rope.IsPrefab)
                 return;
-            
+
             if (Application.isPlaying)
             {
                 GenerateMesh();
